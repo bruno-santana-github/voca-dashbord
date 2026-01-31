@@ -1,0 +1,1330 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Vocab Tracker • Dashboard</title>
+
+  <style>
+    :root{
+      --bg:#0b1220;
+      --text:#e8eefc;
+      --muted:#a9b8db;
+      --line:rgba(255,255,255,.10);
+      --good:#42f5b3;
+      --warn:#ffd166;
+      --bad:#ff5d6c;
+      --chip:rgba(255,255,255,.08);
+      --shadow: 0 12px 30px rgba(0,0,0,.35);
+      --radius:16px;
+      --chartGrid: rgba(255,255,255,.12);
+      --chartLine: rgba(66,245,179,.85);
+      --chartFill: rgba(66,245,179,.12);
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 900px at 20% 0%, rgba(66,245,179,.12), transparent 55%),
+                  radial-gradient(900px 700px at 100% 20%, rgba(255,93,108,.10), transparent 50%),
+                  radial-gradient(700px 600px at 40% 100%, rgba(255,209,102,.08), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+      min-height:100vh;
+    }
+
+    .wrap{
+      max-width:1180px;
+      margin:0 auto;
+      padding:24px 16px 44px;
+    }
+
+    header{
+      display:flex;
+      gap:14px;
+      align-items:flex-start;
+      justify-content:space-between;
+      margin-bottom:16px;
+      flex-wrap:wrap;
+    }
+
+    .brand{ display:flex; flex-direction:column; gap:4px; min-width:260px; }
+    .brand h1{ margin:0; font-size:22px; letter-spacing:.2px; }
+    .brand p{ margin:0; color:var(--muted); font-size:13px; line-height:1.35; }
+
+    .top-actions{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    button, input, select{ font:inherit; color:inherit; }
+    .btn{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.06);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      transition:.15s ease;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      white-space:nowrap;
+      touch-action:manipulation;
+    }
+    .btn:hover{ transform:translateY(-1px); background:rgba(255,255,255,.08); }
+    .btn:active{ transform:translateY(0); }
+    .btn.primary{ border-color: rgba(66,245,179,.35); background: rgba(66,245,179,.12); }
+    .btn.danger{ border-color: rgba(255,93,108,.35); background: rgba(255,93,108,.10); }
+    .btn.small{ padding:8px 10px; border-radius:10px; font-size:13px; }
+    .btn.icon{ padding:8px 10px; border-radius:10px; }
+
+    /* ✅ Layout responsivo: 2 colunas no desktop, 1 coluna no mobile */
+    .grid{
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap:14px;
+    }
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+      .top-actions{ justify-content:flex-start; }
+    }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:14px 16px;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      background: rgba(0,0,0,.14);
+      flex-wrap:wrap;
+    }
+    .card .hd h2{ margin:0; font-size:15px; letter-spacing:.2px; }
+    .card .bd{ padding:14px 16px 16px; }
+
+    /* ✅ Form responsivo */
+    .form{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      align-items:end;
+    }
+    @media (max-width: 720px){
+      .form{ grid-template-columns: 1fr; }
+    }
+
+    .field{ display:flex; flex-direction:column; gap:6px; }
+    label{ font-size:12px; color:var(--muted); }
+    input[type="text"], input[type="date"], select{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.05);
+      border-radius:12px;
+      padding:10px 12px;
+      outline:none;
+      min-height:42px;
+      width:100%;
+    }
+    input[type="text"]::placeholder{ color: rgba(169,184,219,.6); }
+    input:focus, select:focus{
+      border-color: rgba(66,245,179,.35);
+      box-shadow: 0 0 0 4px rgba(66,245,179,.08);
+    }
+
+    .form .actions{
+      grid-column: 1 / -1;
+      display:flex;
+      gap:10px;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+      margin-top:4px;
+    }
+    @media (max-width: 720px){
+      .form .actions{ justify-content:stretch; }
+      .form .actions .btn{ flex:1; justify-content:center; }
+    }
+
+    /* ✅ Cards de métricas responsivos */
+    .stats{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap:10px;
+    }
+    @media (max-width: 980px){ .stats{ grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 460px){ .stats{ grid-template-columns: 1fr; } }
+
+    .stat{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      border-radius:14px;
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-height:92px;
+    }
+    .stat .k{ color:var(--muted); font-size:12px; }
+    .stat .v{ font-size:22px; font-weight:700; letter-spacing:.2px; }
+    .stat .s{ font-size:12px; color:var(--muted); display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+
+    .pill{
+      padding:3px 8px;
+      border-radius:999px;
+      background: var(--chip);
+      border:1px solid var(--line);
+      font-size:12px;
+      width:fit-content;
+    }
+    .pill.good{ border-color: rgba(66,245,179,.35); color: var(--good); background: rgba(66,245,179,.08); }
+    .pill.bad{ border-color: rgba(255,93,108,.35); color: var(--bad); background: rgba(255,93,108,.08); }
+    .pill.warn{ border-color: rgba(255,209,102,.35); color: var(--warn); background: rgba(255,209,102,.08); }
+
+    /* ✅ Toolbar responsiva */
+    .toolbar{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:space-between;
+      margin-bottom:10px;
+    }
+    .toolbar .left, .toolbar .right{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .search{ min-width:240px; width:min(360px, 100%); }
+    @media (max-width: 720px){
+      .toolbar .left, .toolbar .right{ width:100%; }
+      .search{ width:100%; min-width:0; }
+      .toolbar select{ width:100%; }
+    }
+
+    /* ✅ Tabela responsiva (scroll horizontal no mobile) */
+    .tablewrap{
+      max-height:420px;
+      overflow:auto;
+      border-radius:14px;
+      -webkit-overflow-scrolling: touch;
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      border-radius:14px;
+      border:1px solid var(--line);
+      min-width: 760px; /* força scroll horizontal em telas pequenas */
+    }
+    th, td{
+      padding:10px 10px;
+      border-bottom:1px solid var(--line);
+      text-align:left;
+      vertical-align:top;
+      font-size:13px;
+    }
+    th{
+      font-size:12px;
+      color:var(--muted);
+      background: rgba(0,0,0,.18);
+      position:sticky;
+      top:0;
+      z-index:1;
+    }
+    tr:hover td{ background: rgba(255,255,255,.02); }
+    .muted{ color:var(--muted); }
+
+    .typechip{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:3px 8px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      font-size:12px;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+
+    .bars{ display:flex; flex-direction:column; gap:10px; }
+    .barblock{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      border-radius:14px;
+      padding:12px;
+    }
+    .barblock .row{
+      display:flex;
+      align-items:baseline;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:8px;
+      flex-wrap:wrap;
+    }
+    .barblock .row .title{ font-size:13px; font-weight:600; }
+    .barblock .row .meta{ font-size:12px; color:var(--muted); }
+
+    .bar{
+      height:12px;
+      border-radius:999px;
+      background: rgba(255,255,255,.06);
+      border:1px solid var(--line);
+      overflow:hidden;
+    }
+    .bar > span{
+      display:block;
+      height:100%;
+      width:0%;
+      background: linear-gradient(90deg, rgba(66,245,179,.85), rgba(255,209,102,.65));
+      border-right: 1px solid rgba(255,255,255,.25);
+      transition: width .25s ease;
+    }
+    .note{ margin-top:10px; color:var(--muted); font-size:12px; line-height:1.4; }
+
+    .footer{
+      margin-top:14px;
+      color:var(--muted);
+      font-size:12px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:space-between;
+      align-items:center;
+    }
+
+    /* ✅ Chart responsivo */
+    .chart-wrap{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+      border-radius:14px;
+      padding:10px;
+    }
+    canvas{
+      width:100%;
+      height: min(240px, 32vh);
+      display:block;
+    }
+    @media (max-width: 460px){
+      canvas{ height: 220px; }
+    }
+
+    .chart-controls{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+      margin-top:10px;
+    }
+    .chart-controls .left,
+    .chart-controls .right{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    @media (max-width: 720px){
+      .chart-controls .left, .chart-controls .right{ width:100%; }
+      .chart-controls select, .chart-controls .btn{ width:100%; justify-content:center; }
+    }
+
+    /* Speak button inside term cell */
+    .termcell{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      justify-content:space-between;
+    }
+    .termcell .tleft{ min-width:0; }
+    .termcell strong{ display:block; word-break:break-word; }
+
+    /* Toast */
+    .toast{
+      position:fixed;
+      right:16px;
+      bottom:16px;
+      max-width:min(360px, calc(100vw - 32px));
+      padding:12px 14px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.60);
+      box-shadow: var(--shadow);
+      color:var(--text);
+      font-size:13px;
+      line-height:1.35;
+      opacity:0;
+      transform: translateY(8px);
+      pointer-events:none;
+      transition:.18s ease;
+      z-index:999;
+    }
+    .toast.show{ opacity:1; transform: translateY(0); }
+    .toast .t{ display:flex; align-items:center; gap:8px; }
+    .dot{
+      width:10px; height:10px; border-radius:999px; background: var(--warn);
+      box-shadow: 0 0 0 4px rgba(255,209,102,.12);
+      flex:0 0 auto;
+    }
+    .dot.good{ background: var(--good); box-shadow: 0 0 0 4px rgba(66,245,179,.12); }
+    .dot.bad{ background: var(--bad); box-shadow: 0 0 0 4px rgba(255,93,108,.12); }
+
+    .hidden{ display:none !important; }
+
+    /* ✅ Melhor toque no mobile */
+    @media (pointer: coarse){
+      .btn{ padding:12px 14px; }
+      .btn.small{ padding:10px 12px; }
+      th, td{ padding:12px 10px; }
+    }
+
+    /* ✅ Reduz animações se usuário preferir */
+    @media (prefers-reduced-motion: reduce){
+      *{ transition:none !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <h1>Vocab Tracker • Dashboard</h1>
+        <p>Responsivo para celular/tablet/desktop. Clique no 🔊 para ouvir a pronúncia do termo em inglês.</p>
+      </div>
+
+      <div class="top-actions">
+        <button class="btn" id="btnExport">Exportar JSON</button>
+        <button class="btn" id="btnImport">Importar JSON</button>
+        <input type="file" id="importFile" class="hidden" accept="application/json" />
+        <button class="btn danger" id="btnClear">Apagar tudo</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- Left -->
+      <section class="card">
+        <div class="hd">
+          <h2>Adicionar vocabulário</h2>
+          <span class="pill" id="pillCount">0 itens</span>
+        </div>
+        <div class="bd">
+          <form class="form" id="vocabForm" autocomplete="off">
+            <div class="field">
+              <label for="term">Termo em inglês</label>
+              <input id="term" type="text" placeholder="Ex.: take care of" required />
+            </div>
+
+            <div class="field">
+              <label for="translation">Tradução (PT)</label>
+              <input id="translation" type="text" placeholder="Ex.: cuidar de" required />
+            </div>
+
+            <div class="field">
+              <label for="kind">Tipo</label>
+              <select id="kind">
+                <option value="word">Palavra</option>
+                <option value="expression">Expressão</option>
+                <option value="phrasal">Phrasal Verb</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="learnedAt">Data</label>
+              <input id="learnedAt" type="date" />
+            </div>
+
+            <div class="actions">
+              <button class="btn primary" type="submit" id="btnSave">Salvar</button>
+              <button class="btn" type="button" id="btnSpeakCurrent" title="Ouvir o termo em inglês">🔊 Ouvir</button>
+              <button class="btn" type="button" id="btnReset">Limpar</button>
+            </div>
+
+            <input type="hidden" id="editingId" value="" />
+          </form>
+
+          <div style="height:12px"></div>
+
+          <div class="toolbar">
+            <div class="left">
+              <input class="search" id="search" type="text" placeholder="Buscar (EN ou PT)..." />
+              <select id="filterKind" title="Filtrar tipo">
+                <option value="all">Tudo</option>
+                <option value="word">Somente palavras</option>
+                <option value="expression">Somente expressões</option>
+                <option value="phrasal">Somente phrasal verbs</option>
+              </select>
+            </div>
+
+            <div class="right">
+              <select id="sortBy" title="Ordenar">
+                <option value="dateDesc">Mais recentes</option>
+                <option value="dateAsc">Mais antigas</option>
+                <option value="termAsc">A→Z (EN)</option>
+                <option value="termDesc">Z→A (EN)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="tablewrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:52px">#</th>
+                  <th>Inglês</th>
+                  <th>Português</th>
+                  <th style="width:150px">Tipo</th>
+                  <th style="width:130px">Data</th>
+                  <th style="width:200px">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tbody"></tbody>
+            </table>
+          </div>
+
+          <div class="footer">
+            <span class="muted" id="dupHint"></span>
+            <span class="muted" id="speechHint"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right -->
+      <aside class="card">
+        <div class="hd">
+          <h2>Dashboard</h2>
+          <span class="pill warn" id="pillStreak">Streak: 0</span>
+        </div>
+        <div class="bd">
+          <div class="stats">
+            <div class="stat">
+              <div class="k">Total</div>
+              <div class="v" id="stTotal">0</div>
+              <div class="s">
+                <span class="pill" id="stWords">0 palavras</span>
+                <span class="pill" id="stExpr">0 expressões</span>
+                <span class="pill" id="stPhrasal">0 phrasal</span>
+              </div>
+            </div>
+            <div class="stat">
+              <div class="k">Novos hoje</div>
+              <div class="v" id="stToday">0</div>
+              <div class="s" id="stTodayDelta"></div>
+            </div>
+            <div class="stat">
+              <div class="k">Novos esta semana</div>
+              <div class="v" id="stWeek">0</div>
+              <div class="s" id="stWeekDelta"></div>
+            </div>
+            <div class="stat">
+              <div class="k">Novos este mês</div>
+              <div class="v" id="stMonth">0</div>
+              <div class="s" id="stMonthDelta"></div>
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="barblock">
+            <div class="row">
+              <div class="title">Gráfico de progresso (escala numérica)</div>
+              <div class="meta" id="chartMeta">—</div>
+            </div>
+
+            <div class="chart-wrap">
+              <canvas id="progressChart" width="900" height="260"></canvas>
+            </div>
+
+            <div class="chart-controls">
+              <div class="left">
+                <label class="muted" style="font-size:12px">Período:</label>
+                <select id="chartRange">
+                  <option value="7">7 dias</option>
+                  <option value="30" selected>30 dias</option>
+                  <option value="90">90 dias</option>
+                </select>
+
+                <label class="muted" style="font-size:12px">Modo:</label>
+                <select id="chartMode">
+                  <option value="daily" selected>Itens por dia</option>
+                  <option value="cumulative">Acumulado</option>
+                </select>
+              </div>
+
+              <div class="right">
+                <button class="btn small" id="btnChartRedraw">Atualizar gráfico</button>
+              </div>
+            </div>
+
+            <div class="note">No mobile, a tabela usa scroll horizontal. O gráfico se ajusta ao tamanho da tela automaticamente.</div>
+          </div>
+
+          <div class="bars">
+            <div class="barblock">
+              <div class="row">
+                <div class="title">Percentual do total na semana</div>
+                <div class="meta" id="pctMeta">—</div>
+              </div>
+              <div class="bar"><span id="pctBar"></span></div>
+              <div class="note" id="pctNote">—</div>
+            </div>
+
+            <div class="barblock">
+              <div class="row">
+                <div class="title">Relatório diário (7 dias)</div>
+                <div class="meta" id="dailyMeta">—</div>
+              </div>
+              <div class="spark" id="sparkDaily" style="display:grid; grid-template-columns: repeat(7, 1fr); gap:6px; align-items:end; height:70px; padding:10px; border-radius:14px; border:1px solid var(--line); background: rgba(255,255,255,.02);"></div>
+            </div>
+
+            <div class="barblock">
+              <div class="row">
+                <div class="title">Relatório semanal (8 semanas)</div>
+                <div class="meta" id="weeklyMeta">—</div>
+              </div>
+              <div class="spark" id="sparkWeekly" style="display:grid; grid-template-columns: repeat(8, 1fr); gap:6px; align-items:end; height:70px; padding:10px; border-radius:14px; border:1px solid var(--line); background: rgba(255,255,255,.02);"></div>
+            </div>
+
+            <div class="barblock">
+              <div class="row">
+                <div class="title">Relatório mensal (12 meses)</div>
+                <div class="meta" id="monthlyMeta">—</div>
+              </div>
+              <div class="spark" id="sparkMonthly" style="display:grid; grid-template-columns: repeat(12, 1fr); gap:6px; align-items:end; height:70px; padding:10px; border-radius:14px; border:1px solid var(--line); background: rgba(255,255,255,.02);"></div>
+            </div>
+          </div>
+
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><div class="t"><span class="dot" id="toastDot"></span><span id="toastText"></span></div></div>
+
+<script>
+const STORAGE_KEY = "vocab_tracker_items_v4";
+
+const el = (id) => document.getElementById(id);
+
+// Form
+const form = el("vocabForm");
+const term = el("term");
+const translation = el("translation");
+const kind = el("kind");
+const learnedAt = el("learnedAt");
+const editingId = el("editingId");
+
+const search = el("search");
+const filterKind = el("filterKind");
+const sortBy = el("sortBy");
+const tbody = el("tbody");
+
+const btnReset = el("btnReset");
+const btnClear = el("btnClear");
+const btnExport = el("btnExport");
+const btnImport = el("btnImport");
+const importFile = el("importFile");
+const btnSpeakCurrent = el("btnSpeakCurrent");
+
+const pillCount = el("pillCount");
+const dupHint = el("dupHint");
+const speechHint = el("speechHint");
+
+// Stats
+const stTotal = el("stTotal");
+const stWords = el("stWords");
+const stExpr = el("stExpr");
+const stPhrasal = el("stPhrasal");
+const stToday = el("stToday");
+const stWeek = el("stWeek");
+const stMonth = el("stMonth");
+const stTodayDelta = el("stTodayDelta");
+const stWeekDelta = el("stWeekDelta");
+const stMonthDelta = el("stMonthDelta");
+const pillStreak = el("pillStreak");
+
+const pctMeta = el("pctMeta");
+const pctBar = el("pctBar");
+const pctNote = el("pctNote");
+
+const sparkDaily = el("sparkDaily");
+const sparkWeekly = el("sparkWeekly");
+const sparkMonthly = el("sparkMonthly");
+const dailyMeta = el("dailyMeta");
+const weeklyMeta = el("weeklyMeta");
+const monthlyMeta = el("monthlyMeta");
+
+// Chart
+const chartCanvas = el("progressChart");
+const chartMeta = el("chartMeta");
+const chartRange = el("chartRange");
+const chartMode = el("chartMode");
+const btnChartRedraw = el("btnChartRedraw");
+
+// Toast
+const toast = el("toast");
+const toastText = el("toastText");
+const toastDot = el("toastDot");
+let toastTimer = null;
+
+function showToast(msg, type="warn"){
+  toastText.textContent = msg;
+  toastDot.className = "dot " + (type === "good" ? "good" : type === "bad" ? "bad" : "");
+  toast.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> toast.classList.remove("show"), 2200);
+}
+
+function nowLocalDate(){
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,"0");
+  const dd = String(d.getDate()).padStart(2,"0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+learnedAt.value = nowLocalDate();
+
+function loadItems(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return [];
+    const items = JSON.parse(raw);
+    if(!Array.isArray(items)) return [];
+    return items;
+  }catch{
+    return [];
+  }
+}
+function saveItems(items){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+}
+function uid(){
+  return Math.random().toString(16).slice(2) + Date.now().toString(16);
+}
+
+// Anti-duplicados (normalização forte)
+function normalize(s){
+  return (s || "")
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/[“”‘’]/g, "'")
+    .replace(/[^a-z0-9'\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function isDuplicateTerm(items, termValue, currentEditingId){
+  const key = normalize(termValue);
+  return items.some(it => normalize(it.term) === key && it.id !== currentEditingId);
+}
+
+// Date helpers
+function parseDate(yyyyMMdd){
+  const [y,m,d] = yyyyMMdd.split("-").map(Number);
+  return new Date(y, m-1, d, 0, 0, 0, 0);
+}
+function startOfDay(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0,0,0,0); }
+function startOfWeek(d){
+  const date = startOfDay(d);
+  const day = date.getDay();
+  const diff = (day === 0 ? -6 : 1 - day);
+  date.setDate(date.getDate() + diff);
+  return date;
+}
+function startOfMonth(d){ return new Date(d.getFullYear(), d.getMonth(), 1, 0,0,0,0); }
+function endExclusive(d){
+  const x = startOfDay(d);
+  x.setDate(x.getDate()+1);
+  return x;
+}
+function countInRange(items, start, endExclusiveDate){
+  return items.filter(it => {
+    const dt = parseDate(it.learnedAt);
+    return dt >= start && dt < endExclusiveDate;
+  }).length;
+}
+
+function groupCountByDay(items, days){
+  const out = [];
+  const today = startOfDay(new Date());
+  for(let i=days-1;i>=0;i--){
+    const d = new Date(today);
+    d.setDate(d.getDate()-i);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    const count = items.filter(it => it.learnedAt === key).length;
+    const label = d.toLocaleDateString("pt-BR",{day:"2-digit", month:"2-digit"});
+    out.push({label, key, count});
+  }
+  return out;
+}
+function groupCountByWeek(items, weeks){
+  const out = [];
+  const now = new Date();
+  const thisWeekStart = startOfWeek(now);
+  for(let i=weeks-1;i>=0;i--){
+    const ws = new Date(thisWeekStart);
+    ws.setDate(ws.getDate() - i*7);
+    const we = new Date(ws);
+    we.setDate(we.getDate()+7);
+    const count = countInRange(items, ws, we);
+    const label = `${ws.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"})}–${new Date(we.getFullYear(),we.getMonth(),we.getDate()-1).toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"})}`;
+    out.push({label, count});
+  }
+  return out;
+}
+function groupCountByMonth(items, months){
+  const out = [];
+  const now = new Date();
+  const thisMonthStart = startOfMonth(now);
+  for(let i=months-1;i>=0;i--){
+    const ms = new Date(thisMonthStart.getFullYear(), thisMonthStart.getMonth()-i, 1);
+    const me = new Date(ms.getFullYear(), ms.getMonth()+1, 1);
+    const count = countInRange(items, ms, me);
+    const label = ms.toLocaleDateString("pt-BR",{month:"short", year:"2-digit"});
+    out.push({label, count});
+  }
+  return out;
+}
+
+function pct(part, total){ return total <= 0 ? 0 : Math.round((part/total)*100); }
+function deltaBadge(current, previous){
+  if(previous === 0 && current === 0) return {text:"= 0%", cls:"pill"};
+  if(previous === 0 && current > 0) return {text:"+100%", cls:"pill good"};
+  const change = Math.round(((current - previous) / Math.max(previous,1))*100);
+  if(change > 0) return {text:`+${change}%`, cls:"pill good"};
+  if(change < 0) return {text:`${change}%`, cls:"pill bad"};
+  return {text:"= 0%", cls:"pill"};
+}
+function computeStreak(items){
+  const set = new Set(items.map(it => it.learnedAt));
+  let streak = 0;
+  let d = startOfDay(new Date());
+  while(true){
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    if(set.has(key)){ streak++; d.setDate(d.getDate()-1); }
+    else break;
+  }
+  return streak;
+}
+function renderSpark(container, series){
+  container.innerHTML = "";
+  const max = Math.max(...series.map(x => x.count), 1);
+  series.forEach(x => {
+    const col = document.createElement("div");
+    col.style.background = "rgba(66,245,179,.24)";
+    col.style.border = "1px solid rgba(66,245,179,.18)";
+    col.style.borderRadius = "10px";
+    col.style.minHeight = "6px";
+    const h = Math.round((x.count / max) * 100);
+    col.style.height = Math.max(8, Math.round(h * 0.7)) + "px";
+    col.title = `${x.label}: ${x.count}`;
+    container.appendChild(col);
+  });
+}
+
+// Speech
+function canSpeak(){
+  return "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
+}
+function pickEnglishVoice(){
+  const voices = window.speechSynthesis.getVoices?.() || [];
+  const en = voices.filter(v => (v.lang || "").toLowerCase().startsWith("en"));
+  const us = en.find(v => v.lang.toLowerCase().startsWith("en-us"));
+  const gb = en.find(v => v.lang.toLowerCase().startsWith("en-gb"));
+  return us || gb || en[0] || null;
+}
+function speakEnglish(text){
+  const t = (text || "").trim();
+  if(!t){ showToast("Digite um termo em inglês para ouvir.", "warn"); return; }
+  if(!canSpeak()){ showToast("Seu navegador não suporta áudio (TTS).", "bad"); return; }
+  try{ window.speechSynthesis.cancel(); }catch{}
+  const u = new SpeechSynthesisUtterance(t);
+  u.lang = "en-US";
+  const v = pickEnglishVoice();
+  if(v) u.voice = v;
+  u.rate = 0.95;
+  u.pitch = 1.0;
+  window.speechSynthesis.speak(u);
+}
+function initSpeech(){
+  if(!canSpeak()){
+    speechHint.textContent = "Áudio: indisponível neste navegador (use Chrome/Edge).";
+    return;
+  }
+  window.speechSynthesis.onvoiceschanged = () => pickEnglishVoice();
+  pickEnglishVoice();
+  speechHint.textContent = "Áudio: clique no 🔊 para ouvir o termo.";
+}
+
+// Chart
+function setupCanvasForDPR(canvas){
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  const rect = canvas.getBoundingClientRect();
+  const w = Math.round(rect.width * dpr);
+  const h = Math.round(rect.height * dpr);
+  if(canvas.width !== w || canvas.height !== h){
+    canvas.width = w;
+    canvas.height = h;
+  }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return ctx;
+}
+function niceMax(maxVal){
+  if(maxVal <= 0) return 1;
+  const exp = Math.floor(Math.log10(maxVal));
+  const base = Math.pow(10, exp);
+  const frac = maxVal / base;
+  let niceFrac = 1;
+  if(frac <= 1) niceFrac = 1;
+  else if(frac <= 2) niceFrac = 2;
+  else if(frac <= 5) niceFrac = 5;
+  else niceFrac = 10;
+  return niceFrac * base;
+}
+function buildSeriesForChart(items, days, mode){
+  const series = groupCountByDay(items, days);
+  if(mode === "cumulative"){
+    let acc = 0;
+    return series.map(p => ({label:p.label, value:(acc += p.count)}));
+  }
+  return series.map(p => ({label:p.label, value:p.count}));
+}
+function drawChart(items){
+  const days = Number(chartRange.value);
+  const mode = chartMode.value;
+  const ctx = setupCanvasForDPR(chartCanvas);
+  const W = chartCanvas.getBoundingClientRect().width;
+  const H = chartCanvas.getBoundingClientRect().height;
+
+  const padL = 44, padR = 10, padT = 10, padB = 28;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+
+  ctx.clearRect(0,0,W,H);
+
+  const series = buildSeriesForChart(items, days, mode);
+  const values = series.map(s => s.value);
+  const maxV = niceMax(Math.max(...values, 0));
+  const ticks = 5;
+
+  ctx.font = "12px ui-sans-serif, system-ui";
+  ctx.fillStyle = "rgba(169,184,219,.85)";
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--chartGrid");
+  ctx.lineWidth = 1;
+
+  for(let i=0;i<=ticks;i++){
+    const v = Math.round((maxV)*(i/ticks));
+    const y = padT + plotH - (plotH*(i/ticks));
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(padL + plotW, y);
+    ctx.stroke();
+    ctx.fillText(String(v), 8, y+4);
+  }
+
+  // baseline
+  ctx.strokeStyle = "rgba(255,255,255,.12)";
+  ctx.beginPath();
+  ctx.moveTo(padL, padT + plotH);
+  ctx.lineTo(padL + plotW, padT + plotH);
+  ctx.stroke();
+
+  const n = series.length;
+  const stepX = n > 1 ? (plotW/(n-1)) : plotW;
+
+  function toXY(i){
+    const x = padL + i*stepX;
+    const y = padT + plotH - ((series[i].value) / (maxV || 1)) * plotH;
+    return {x,y};
+  }
+
+  // fill area
+  ctx.beginPath();
+  const p0 = toXY(0);
+  ctx.moveTo(p0.x, padT + plotH);
+  ctx.lineTo(p0.x, p0.y);
+  for(let i=1;i<n;i++){
+    const p = toXY(i);
+    ctx.lineTo(p.x, p.y);
+  }
+  const plast = toXY(n-1);
+  ctx.lineTo(plast.x, padT + plotH);
+  ctx.closePath();
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--chartFill");
+  ctx.fill();
+
+  // line
+  ctx.beginPath();
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--chartLine");
+  ctx.lineWidth = 2;
+  for(let i=0;i<n;i++){
+    const p = toXY(i);
+    if(i===0) ctx.moveTo(p.x, p.y);
+    else ctx.lineTo(p.x, p.y);
+  }
+  ctx.stroke();
+
+  // dots
+  ctx.fillStyle = "rgba(66,245,179,.95)";
+  for(let i=0;i<n;i++){
+    const p = toXY(i);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // x labels (menos rótulos em telas pequenas)
+  const showEvery = days <= 7 ? 1 : (days <= 30 ? 5 : 15);
+  ctx.fillStyle = "rgba(169,184,219,.75)";
+  ctx.font = "11px ui-sans-serif, system-ui";
+  for(let i=0;i<n;i++){
+    if(i % showEvery !== 0 && i !== n-1) continue;
+    const p = toXY(i);
+    ctx.fillText(series[i].label, Math.max(p.x-12, padL), padT + plotH + 18);
+  }
+
+  if(mode === "daily"){
+    const sum = series.reduce((a,b)=>a+b.value,0);
+    chartMeta.textContent = `${days} dias • total no período: ${sum}`;
+  } else {
+    const last = series[series.length-1]?.value ?? 0;
+    chartMeta.textContent = `${days} dias • acumulado final: ${last}`;
+  }
+}
+
+// UI
+function getFilteredSorted(items){
+  const q = normalize(search.value);
+  const fk = filterKind.value;
+
+  let out = items.filter(it => {
+    const okKind = fk === "all" ? true : it.kind === fk;
+    const okQ = !q ? true : normalize(it.term).includes(q) || normalize(it.translation).includes(q);
+    return okKind && okQ;
+  });
+
+  const sb = sortBy.value;
+  out.sort((a,b) => {
+    if(sb === "dateDesc") return b.learnedAt.localeCompare(a.learnedAt);
+    if(sb === "dateAsc") return a.learnedAt.localeCompare(b.learnedAt);
+    if(sb === "termAsc") return normalize(a.term).localeCompare(normalize(b.term));
+    if(sb === "termDesc") return normalize(b.term).localeCompare(normalize(a.term));
+    return 0;
+  });
+  return out;
+}
+function escapeHtml(str){
+  return (str || "").replace(/[&<>"']/g, (m) => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[m]));
+}
+function renderTable(items){
+  const view = getFilteredSorted(items);
+  tbody.innerHTML = "";
+
+  view.forEach((it, idx) => {
+    const tr = document.createElement("tr");
+
+    const tdN = document.createElement("td");
+    tdN.textContent = idx + 1;
+
+    const tdT = document.createElement("td");
+    tdT.innerHTML = `
+      <div class="termcell">
+        <div class="tleft">
+          <strong>${escapeHtml(it.term)}</strong>
+          <span class="muted" style="font-size:12px">Clique no 🔊</span>
+        </div>
+        <button class="btn icon small" data-act="speak" data-term="${escapeHtml(it.term)}" title="Ouvir (EN)">🔊</button>
+      </div>
+    `;
+
+    const tdTr = document.createElement("td");
+    tdTr.textContent = it.translation;
+
+    const tdK = document.createElement("td");
+    const kindLabel =
+      it.kind === "word" ? "Palavra" :
+      it.kind === "phrasal" ? "Phrasal Verb" :
+      "Expressão";
+    tdK.innerHTML = `<span class="typechip">${kindLabel}</span>`;
+
+    const tdD = document.createElement("td");
+    tdD.innerHTML = `<span class="muted">${it.learnedAt}</span>`;
+
+    const tdA = document.createElement("td");
+    tdA.innerHTML = `
+      <button class="btn small" data-act="edit" data-id="${it.id}">Editar</button>
+      <button class="btn small danger" data-act="del" data-id="${it.id}">Excluir</button>
+    `;
+
+    tr.append(tdN, tdT, tdTr, tdK, tdD, tdA);
+    tbody.appendChild(tr);
+  });
+
+  // Aviso se houver duplicados vindo de importação antiga
+  const map = new Map();
+  for(const it of items){
+    const k = normalize(it.term);
+    map.set(k, (map.get(k) || 0) + 1);
+  }
+  const dups = [...map.entries()].filter(([k,v]) => v > 1).length;
+  dupHint.textContent = dups ? `Atenção: ${dups} termo(s) repetido(s) (possível importação antiga).` : "";
+  pillCount.textContent = `${items.length} item(ns)`;
+}
+function resetForm(){
+  editingId.value = "";
+  form.reset();
+  learnedAt.value = nowLocalDate();
+  el("btnSave").textContent = "Salvar";
+  term.focus();
+}
+function upsertItem(items, payload){
+  const idx = items.findIndex(i => i.id === payload.id);
+  if(idx >= 0) items[idx] = payload;
+  else items.unshift(payload);
+  return items;
+}
+function deleteItem(items, id){
+  return items.filter(i => i.id !== id);
+}
+
+function updateDashboard(items){
+  const total = items.length;
+  const words = items.filter(i => i.kind === "word").length;
+  const expr = items.filter(i => i.kind === "expression").length;
+  const phr = items.filter(i => i.kind === "phrasal").length;
+
+  stTotal.textContent = total;
+  stWords.textContent = `${words} palavras`;
+  stExpr.textContent = `${expr} expressões`;
+  stPhrasal.textContent = `${phr} phrasal`;
+
+  const now = new Date();
+  const todayStart = startOfDay(now);
+  const tomorrowStart = endExclusive(now);
+
+  const weekStart = startOfWeek(now);
+  const nextWeekStart = new Date(weekStart); nextWeekStart.setDate(nextWeekStart.getDate()+7);
+
+  const monthStart = startOfMonth(now);
+  const nextMonthStart = new Date(monthStart.getFullYear(), monthStart.getMonth()+1, 1);
+
+  const cToday = countInRange(items, todayStart, tomorrowStart);
+  const cWeek = countInRange(items, weekStart, nextWeekStart);
+  const cMonth = countInRange(items, monthStart, nextMonthStart);
+
+  stToday.textContent = cToday;
+  stWeek.textContent = cWeek;
+  stMonth.textContent = cMonth;
+
+  const yStart = new Date(todayStart); yStart.setDate(yStart.getDate()-1);
+  const yEnd = new Date(todayStart);
+  const cYesterday = countInRange(items, yStart, yEnd);
+
+  const lastWeekStart = new Date(weekStart); lastWeekStart.setDate(lastWeekStart.getDate()-7);
+  const cLastWeek = countInRange(items, lastWeekStart, weekStart);
+
+  const lastMonthStart = new Date(monthStart.getFullYear(), monthStart.getMonth()-1, 1);
+  const cLastMonth = countInRange(items, lastMonthStart, monthStart);
+
+  const d1 = deltaBadge(cToday, cYesterday);
+  const d2 = deltaBadge(cWeek, cLastWeek);
+  const d3 = deltaBadge(cMonth, cLastMonth);
+
+  stTodayDelta.innerHTML = `<span class="${d1.cls}">${d1.text}</span><span class="muted"> vs ontem (${cYesterday})</span>`;
+  stWeekDelta.innerHTML = `<span class="${d2.cls}">${d2.text}</span><span class="muted"> vs semana passada (${cLastWeek})</span>`;
+  stMonthDelta.innerHTML = `<span class="${d3.cls}">${d3.text}</span><span class="muted"> vs mês passado (${cLastMonth})</span>`;
+
+  const pctWeek = pct(cWeek, total);
+  pctMeta.textContent = `Semana atual: ${pctWeek}% do seu total`;
+  pctBar.style.width = `${pctWeek}%`;
+  pctNote.textContent = total
+    ? `Você cadastrou ${cWeek} item(ns) nesta semana. Isso representa ${pctWeek}% do total de ${total}.`
+    : "Cadastre seus primeiros itens.";
+
+  const streak = computeStreak(items);
+  pillStreak.textContent = `Streak: ${streak}`;
+  pillStreak.className = "pill " + (streak >= 7 ? "good" : streak >= 3 ? "warn" : "");
+
+  const daily = groupCountByDay(items, 7).map(x => ({label:x.label, count:x.count}));
+  const weekly = groupCountByWeek(items, 8);
+  const monthly = groupCountByMonth(items, 12);
+
+  dailyMeta.textContent = `Total 7 dias: ${daily.reduce((a,b)=>a+b.count,0)}`;
+  weeklyMeta.textContent = `Total 8 semanas: ${weekly.reduce((a,b)=>a+b.count,0)}`;
+  monthlyMeta.textContent = `Total 12 meses: ${monthly.reduce((a,b)=>a+b.count,0)}`;
+
+  renderSpark(sparkDaily, daily);
+  renderSpark(sparkWeekly, weekly);
+  renderSpark(sparkMonthly, monthly);
+
+  drawChart(items);
+}
+
+/* Events */
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  const items = loadItems();
+
+  const t = term.value.trim();
+  const tr = translation.value.trim();
+  const k = kind.value;
+  const dt = learnedAt.value || nowLocalDate();
+
+  if(!t || !tr) return;
+
+  const id = editingId.value || uid();
+
+  if(isDuplicateTerm(items, t, editingId.value || "")){
+    showToast("Este termo já existe (duplicado).", "bad");
+    term.focus();
+    return;
+  }
+
+  const payload = { id, term:t, translation:tr, kind:k, learnedAt:dt, createdAt:Date.now() };
+  const next = upsertItem(items, payload);
+  saveItems(next);
+
+  showToast(editingId.value ? "Item atualizado." : "Item salvo.", "good");
+  resetForm();
+  refresh();
+});
+
+btnSpeakCurrent.addEventListener("click", () => speakEnglish(term.value));
+
+btnReset.addEventListener("click", () => {
+  resetForm();
+  showToast("Campos limpos.", "warn");
+});
+
+tbody.addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if(!btn) return;
+
+  const act = btn.getAttribute("data-act");
+  if(act === "speak"){
+    speakEnglish(btn.getAttribute("data-term") || "");
+    return;
+  }
+
+  const id = btn.getAttribute("data-id");
+  let items = loadItems();
+  const it = items.find(x => x.id === id);
+  if(!it) return;
+
+  if(act === "edit"){
+    editingId.value = it.id;
+    term.value = it.term;
+    translation.value = it.translation;
+    kind.value = it.kind;
+    learnedAt.value = it.learnedAt;
+    el("btnSave").textContent = "Atualizar";
+    showToast("Editando...", "warn");
+    term.focus();
+  }
+  if(act === "del"){
+    if(confirm("Excluir este item?")){
+      items = deleteItem(items, id);
+      saveItems(items);
+      showToast("Item excluído.", "bad");
+      refresh();
+    }
+  }
+});
+
+[search, filterKind, sortBy].forEach(x => x.addEventListener("input", refresh));
+
+btnClear.addEventListener("click", () => {
+  const items = loadItems();
+  if(items.length === 0) return;
+  if(confirm("Apagar todos os itens?")){
+    localStorage.removeItem(STORAGE_KEY);
+    resetForm();
+    showToast("Tudo apagado.", "bad");
+    refresh();
+  }
+});
+
+btnExport.addEventListener("click", () => {
+  const items = loadItems();
+  const blob = new Blob([JSON.stringify({version:4, exportedAt:new Date().toISOString(), items}, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "vocab-tracker-export.json";
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast("Exportado (JSON).", "good");
+});
+
+btnImport.addEventListener("click", () => importFile.click());
+importFile.addEventListener("change", async () => {
+  const file = importFile.files?.[0];
+  if(!file) return;
+
+  try{
+    const text = await file.text();
+    const data = JSON.parse(text);
+    const imported = Array.isArray(data.items) ? data.items : [];
+    const cleaned = imported
+      .filter(x => x && x.term && x.translation && x.learnedAt)
+      .map(x => ({
+        id: x.id || uid(),
+        term: String(x.term),
+        translation: String(x.translation),
+        kind: (x.kind === "expression" || x.kind === "phrasal") ? x.kind : "word",
+        learnedAt: String(x.learnedAt).slice(0,10),
+        createdAt: x.createdAt || Date.now(),
+      }));
+
+    const current = loadItems();
+    const seen = new Set(current.map(x => normalize(x.term)));
+    const merged = [...current];
+    let added = 0;
+
+    for(const x of cleaned){
+      const key = normalize(x.term);
+      if(!seen.has(key)){
+        merged.push(x);
+        seen.add(key);
+        added++;
+      }
+    }
+
+    saveItems(merged);
+    refresh();
+    showToast(`Importado. +${added} novo(s).`, "good");
+  }catch{
+    showToast("Falha ao importar (JSON inválido).", "bad");
+  }finally{
+    importFile.value = "";
+  }
+});
+
+btnChartRedraw.addEventListener("click", () => drawChart(loadItems()));
+chartRange.addEventListener("change", () => drawChart(loadItems()));
+chartMode.addEventListener("change", () => drawChart(loadItems()));
+window.addEventListener("resize", () => drawChart(loadItems()));
+
+function refresh(){
+  const items = loadItems();
+  renderTable(items);
+  updateDashboard(items);
+}
+
+initSpeech();
+refresh();
+</script>
+</body>
+</html>
